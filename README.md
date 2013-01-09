@@ -26,7 +26,7 @@ OurSQL:
 
 SQLAlchemy:
 
-    sudo pip install sqlalchemy
+    sudo pip-3.2 install sqlalchemy
 
 
 Datenbankeinstellungen

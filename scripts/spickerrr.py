@@ -166,8 +166,9 @@ def update_antragsbuch(antragsbuch_fn, to_fn, pretend):
             logg.error("error inserting antrag '%s', error '%s'", antrag["id"], e)
             failed[antrag["id"]] = e
             session.rollback()
-        if diff:
-            updated[antrag["id"]] = diff
+        else:
+            if diff:
+                updated[antrag["id"]] = diff
 
     if pretend:
         logg.info("---- Nichts geändert, es werden nur die Unterschiede angezeigt ----")

@@ -61,3 +61,7 @@ def truncate_database():
     session.execute("truncate tags")
     session.execute("truncate questions")
     session.commit()
+
+
+def confirm_user():
+    pass

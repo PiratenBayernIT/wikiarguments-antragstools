@@ -12,7 +12,7 @@ import re
 import time
 from pprint import pformat
 
-sys.path.append("../")
+sys.path.append(".")
 
 import piratetools42.logconfig
 logg = piratetools42.logconfig.configure_logging("wikiarguments-spickerrr-import.log")
@@ -141,7 +141,7 @@ def read_TO(to_fn):
     """TO einlesen""" 
     with open(to_fn) as f:
         to_lines = f.readlines()
-    to_order = [line.split(maxsplit=1)[0] for line in to_lines]
+    to_order = [line.split(" ", 1)[0] for line in to_lines]
     return to_order
 
 

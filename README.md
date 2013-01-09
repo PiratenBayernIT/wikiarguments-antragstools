@@ -4,9 +4,9 @@ AntragArguments
 Abhängigkeiten
 --------------
 
-Python 3.x
-SQLAlchemy 0.8
-OurSQL3k 0.9.x
+* Python 3.x
+* SQLAlchemy 0.8
+* OurSQL3k 0.9.x
 
 
 Debian-Install

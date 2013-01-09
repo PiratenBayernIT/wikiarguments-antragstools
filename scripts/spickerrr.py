@@ -107,7 +107,6 @@ def insert_antrag(antrag, to_pos):
     question = Question(title=a["shorttitle"], url=id_, details=details, dateAdded=time.time(),
                         score=0, scoreTrending=0, scoreTop=0, userId=2, additionalData=additional)
     session.add(question)
-    session.commit()
     # insert title words in Tag table because this table is used for question searches
     title_words = a["title"].split()
     for tag in tags + title_words:
@@ -117,7 +116,7 @@ def insert_antrag(antrag, to_pos):
     return question
 
 
-def update_antrag(antrag, to_pos):
+def update_antrag(antrag, to_pos, pretend):
     id_ = antrag["id"]
     question = session.query(Question).filter_by(url=id_).first()
     if question:
@@ -128,12 +127,14 @@ def update_antrag(antrag, to_pos):
         if question.details != details:
             diff = list(difflib.Differ().compare(question.details.split("\n"), details.split("\n")))
             logg.info("Antragsdetails von %s haben sich verändert, Unterschiede:\n %s", id_, pformat(diff))
-            question.details = details
-            session.commit()
+            if not pretend:
+                question.details = details
+                session.commit()
             return diff
     else:
         logg.info("Antrag ist neu: '%s'", id_)
-        insert_antrag(antrag, to_pos)
+        if not pretend:
+            insert_antrag(antrag, to_pos)
         return "Neuer Antrag"
 
 
@@ -145,7 +146,7 @@ def read_TO(to_fn):
     return to_order
 
 
-def update_antragsbuch(antragsbuch_fn, to_fn):
+def update_antragsbuch(antragsbuch_fn, to_fn, pretend):
     logg.info("---- Antragsbuch-Update gestartet ----")
     updated = {}
     failed = {}
@@ -160,7 +161,7 @@ def update_antragsbuch(antragsbuch_fn, to_fn):
         except ValueError:
             to_pos = 0
         try:
-            diff = update_antrag(antrag, to_pos)
+            diff = update_antrag(antrag, to_pos, pretend)
         except Exception as e:
             logg.error("error inserting antrag '%s', error '%s'", antrag["id"], e)
             failed[antrag["id"]] = e
@@ -168,7 +169,11 @@ def update_antragsbuch(antragsbuch_fn, to_fn):
         if diff:
             updated[antrag["id"]] = diff
 
-    logg.info("---- Antragsbuch-Update beendet ----")
+    if pretend:
+        logg.info("---- Nichts geändert, es werden nur die Unterschiede angezeigt ----")
+    else:
+        logg.info("---- Antragsbuch-Update beendet ----")
+        
     if updated:
         logg.info("%s geänderte Anträge:\n%s", len(updated), pformat(updated))
     if failed:
@@ -179,7 +184,6 @@ def update_antragsbuch(antragsbuch_fn, to_fn):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         raise Exception("keine Dateinamen für Antragsbuch und TO angegeben!")
-    #do_it = input("Update durchführen? (j/n) ")
-    do_it = "j"
-    if do_it.lower() == "j":
-        update_antragsbuch(sys.argv[1], sys.argv[2])
+    do_it = input("Update durchführen? Bei nein wird nur angezeigt, was sich verändert hat und nichts an der DB geändert (j/n) ")
+    pretend = False if do_it.lower() == "j" else True
+    update_antragsbuch(sys.argv[1], sys.argv[2], pretend)

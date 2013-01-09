@@ -24,9 +24,10 @@ OurSQL:
     cd oursql-0.9.3
     sudo python3 setup.py install
 
-SQLAlchemy:
+SQLAlchemy (ggf. installierte Python-Version bei Pip anpassen, Ubuntu 12.10: 3.2, Debian 6.0: 3.1):
 
     sudo pip-3.2 install sqlalchemy
+    
 
 
 Datenbankeinstellungen

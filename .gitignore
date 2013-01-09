@@ -1,0 +1,10 @@
+*.pyc
+*.orig
+.project
+.pydevproject
+.settings
+*.swp
+*.swo
+*.swn
+*.log
+localconfig.py

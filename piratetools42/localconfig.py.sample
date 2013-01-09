@@ -1,0 +1,2 @@
+#SQLALCHEMY_CONNECTION = "mysql+oursql://username:password@Host/DBName"
+SQLALCHEMY_CONNECTION = "mysql+oursql://wikiarguments:wikiarguments@localhost/wikiarguments"

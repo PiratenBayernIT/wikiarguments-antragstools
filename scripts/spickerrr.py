@@ -107,6 +107,7 @@ def insert_antrag(antrag, to_pos):
     question = Question(title=a["shorttitle"], url=id_, details=details, dateAdded=time.time(),
                         score=0, scoreTrending=0, scoreTop=0, userId=2, additionalData=additional)
     session.add(question)
+    session.commit()
     # insert title words in Tag table because this table is used for question searches
     title_words = a["title"].split()
     for tag in tags + title_words:

@@ -27,8 +27,21 @@ OurSQL:
 SQLAlchemy (ggf. installierte Python-Version bei Pip anpassen, Ubuntu 12.10: 3.2, Debian 6.0: 3.1):
 
     sudo pip-3.2 install sqlalchemy
-    
 
+
+Besonderheiten Python 3\.3
+--------------------------
+
+Die mitgelieferte oursql.c funktioniert mit Python 3.3 nicht mehr. 
+
+Fix:
+Wie oben, aber zusätzlich vor dem setup.py install:
+
+OurSQL:
+    rm oursql/oursql.c
+
+
+Hinweis: Dazu muss Cython, am Besten in einer Version > 0.18 installiert sein
 
 Datenbankeinstellungen
 ----------------------

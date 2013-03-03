@@ -39,7 +39,7 @@ Wie oben, aber zusätzlich vor dem setup.py install:
 
 OurSQL:
 
-    rm oursql/oursql.c
+    rm oursqlx/oursql.c
 
 
 Hinweis: Dazu muss Cython, am Besten in einer Version > 0.18 installiert sein

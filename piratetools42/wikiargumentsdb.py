@@ -48,7 +48,7 @@ def test_additional_data():
     EXAMPLE_ADDITIONAL_DATA_2 = 'O:8:"stdClass":4:{s:7:"percPro";i:0;s:7:"percCon";i:0;s:11:"numCheckIns";i:0;s:4:"tags";a:1:{i:0;s:8:"Operbalz";}}'
 
     tags = ["A", "BB", "CCC", "DDDD", "EEEE"]
-    tags2 = ["Operbalz"]
+    tags2 = ["Opferbalz"]
 
     e2 = create_additional_data(tags2)
     assert e2 == EXAMPLE_ADDITIONAL_DATA_2

@@ -38,6 +38,7 @@ Fix:
 Wie oben, aber zusätzlich vor dem setup.py install:
 
 OurSQL:
+
     rm oursql/oursql.c
 
 

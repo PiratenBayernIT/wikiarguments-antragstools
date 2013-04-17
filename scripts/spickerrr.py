@@ -54,7 +54,7 @@ CODE_TRANSLATION = {
 }
 
 # additional tags which are added to every antrag
-ADDITIONAL_TAGS = ["BPT12.2"]
+ADDITIONAL_TAGS = ["BPT13.1"]
 
 K = {
   "title": "titel",
@@ -139,13 +139,13 @@ def insert_antrag(antrag, to_pos):
     # insert question into DB
     additional = create_additional_data(tags)
     question = Question(title=a["shorttitle"], url=id_, details=details, dateAdded=time.time(),
-                        score=0, scoreTrending=0, scoreTop=0, userId=2, additionalData=additional)
+                        score=0, scoreTrending=0, scoreTop=0, userId=2, groupId=0, type=0, flags=0, additionalData=additional)
     session.add(question)
     session.commit()
     # insert title words in Tag table because this table is used for question searches
     title_words = a[K["title"]].split()
     for tag in tags + title_words:
-        tag_obj = Tag(tag=tag, questionId=question.questionId)
+        tag_obj = Tag(tag=tag, questionId=question.questionId, groupId=0)
         session.add(tag_obj)
     session.commit()
     return question
@@ -221,6 +221,15 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise Exception("keine Dateiname für das Antragsbuch angegeben!")
+    # truncate
+    if sys.argv[1] == "truncate":
+        do_it = input("Wirklich alle Tags und Fragen löschen?!? (j/n) ")
+        if do_it.lower() == "j":
+            truncate_database()
+            logg.info("alles gelöscht!")
+            
+        sys.exit(0)
+    # update    
     do_it = input("Update durchführen? Bei nein wird nur angezeigt, was sich verändert hat und nichts an der DB geändert (j/n) ")
     pretend = False if do_it.lower() == "j" else True
     to_filename = sys.argv[2] if len(sys.argv) > 2 else None

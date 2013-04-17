@@ -1,4 +1,5 @@
 import sqlalchemy
+import logging
 from sqlalchemy import Table, MetaData, create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -6,6 +7,9 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from piratetools42.localconfig import SQLALCHEMY_CONNECTION
 
+logg = logging.getLogger(__name__)
+
+logg.info("connection: %s", SQLALCHEMY_CONNECTION)
 engine = create_engine(SQLALCHEMY_CONNECTION, echo=False)
 metadata = MetaData()
 

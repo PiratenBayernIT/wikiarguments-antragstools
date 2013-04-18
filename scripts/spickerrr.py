@@ -77,7 +77,13 @@ K.update({
   "lqfb_url": "lqfb", 
   "info_url": "wiki", 
   "kind": "typ",
+  "group": "gruppe"
 })
+
+# globals
+
+# do we have a TO (Tagesordnung)?
+TO_GIVEN = False
 
 def translate_antrags_code(antrag):
     """change antrag code and return fixed code"""
@@ -128,13 +134,14 @@ def insert_antrag(antrag, to_pos):
     a = prepare_antrag(antrag)
     details = antrag_details_prepare_html(a)
     id_ = a[K["id"]]
-    tags = [id_, a[K["kind"]]] + ADDITIONAL_TAGS
-    # add TO position tags
-    if to_pos != 0:
-        tags.append("Top80")
-        tags.append("TO" + str(to_pos))
-    else:
-        tags.append("Rest")
+    tags = [id_, a[K["kind"]], a[K["group"]]] + ADDITIONAL_TAGS
+    if TO_GIVEN:
+        # add TO position tags
+        if to_pos != 0:
+            tags.append("Top80")
+            tags.append("TO" + str(to_pos))
+        else:
+            tags.append("Rest")
         
     # insert question into DB
     additional = create_additional_data(tags)
@@ -145,7 +152,7 @@ def insert_antrag(antrag, to_pos):
     # insert title words in Tag table because this table is used for question searches
     title_words = a[K["title"]].split()
     for tag in tags + title_words:
-        tag_obj = Tag(tag=tag, questionId=question.questionId, groupId=0)
+        tag_obj = Tag(tag=tag.replace(" ", "-"), questionId=question.questionId, groupId=0)
         session.add(tag_obj)
     session.commit()
     return question
@@ -233,4 +240,6 @@ if __name__ == "__main__":
     do_it = input("Update durchführen? Bei nein wird nur angezeigt, was sich verändert hat und nichts an der DB geändert (j/n) ")
     pretend = False if do_it.lower() == "j" else True
     to_filename = sys.argv[2] if len(sys.argv) > 2 else None
+    if to_filename:
+        TO_GIVEN = True
     update_from_antragsbuch(sys.argv[1], to_filename, pretend)

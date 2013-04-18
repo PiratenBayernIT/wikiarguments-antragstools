@@ -42,7 +42,7 @@ ADDITIONAL_DATA_TEMPLATE = 'O:8:"stdClass":4:{{s:7:"percPro";i:0;s:7:"percCon";i
 def create_additional_data(tags):
     tag_entries = []
     for num, tag in enumerate(tags):
-        tag_entry = 'i:{};s:{}:"{}";'.format(num, len(tag), tag)
+        tag_entry = 'i:{};s:{}:"{}";'.format(num, len(bytes(tag, encoding="utf8")), tag.replace(" ", "-"))
         tag_entries.append(tag_entry)
     return ADDITIONAL_DATA_TEMPLATE.format(len(tags), "".join(tag_entries))
 

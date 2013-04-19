@@ -27,7 +27,7 @@ HTML_ANTRAGS_TMPL = """\
 {fulltitle_html}
 <h2>Wiki</h2>
 <a href="{info_url}">{info_url}</a>
-<h2>Feedback</h2>
+<h2>Liquid Feedback</h2>
 <a href="{lqfb_url}">{lqfb_url}</a>
 <h2>Antragsteller</h2>
 {owner}
@@ -35,7 +35,7 @@ HTML_ANTRAGS_TMPL = """\
 {text}
 <h2>Begründung</h2>
 {motivation}
-<h2>Letzte Änderung</h2>
+<h2>Eingetragen am / Letzte Aktualisierung</h2>
 {changed}
 """
 
@@ -218,10 +218,16 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
     else:
         logg.info("---- Antragsbuch-Update beendet ----")
         
+    # show updated and failed antraege
     if updated:
-        logg.info("%s geänderte Anträge:\n%s", len(updated), pformat(updated))
+        logg.debug("Geänderte Anträge:\n%s", pformat(updated))
     if failed:
-        logg.warn("Es traten Fehler bei %s Anträgen auf:\n%s", len(failed), pformat(failed))
+        logg.warn("Es traten Fehler bei folgenden Anträgen auf:\n%s", pformat(failed))
+        
+    # show counts
+    logg.info("Geänderte Anträge (Anzahl): %s", len(updated))
+    if failed:
+        logg.warn("Es traten Fehler bei Anträgen auf (Anzahl): %s", len(failed))
     return updated, failed
 
 

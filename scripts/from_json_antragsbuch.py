@@ -20,7 +20,8 @@ from piratetools42.wikiargumentsdb import create_additional_data, session, Quest
 ### config
 
 WIKI_BASE_URI = "http://wiki.piratenpartei.de/"
-WIKIARGUMENTS_BASE_URI = "http://bptarguments.piratenpartei.de/"
+WIKIARGUMENTS_BASE_URI = "https://vdr:3000/141/"
+#WIKIARGUMENTS_BASE_URI = "http://bptarguments.piratenpartei.de/141/"
 
 HTML_ANTRAGS_TMPL = """\
 {fulltitle_html}
@@ -50,7 +51,7 @@ CODE_TRANSLATION = {
 }
 
 # additional tags which are added to every antrag
-ADDITIONAL_TAGS = ["BPT13.2"]
+ADDITIONAL_TAGS = ["BPT14.1"]
 
 K = {
   "title": "titel",
@@ -77,6 +78,10 @@ TO_GIVEN = False
 
 
 TODAY_DATE_STR = date.strftime(date.today(), "%d.%m.%Y")
+
+
+antraege = {}
+antrag_groups = {}
 
 
 def translate_antrags_code(antrag):
@@ -176,6 +181,12 @@ def update_antrag(antrag, to_pos, pretend):
             insert_antrag(antrag, to_pos)
         return "Neuer Antrag"
 
+    # add to group overview
+    group = antrag[K["group"]]
+    grouplist = antrag_groups.setdefault(group, [])
+    grouplist.append(id_)
+    antraege[id_] = antrag
+
 
 def read_TO(to_fn):
     """TO einlesen""" 
@@ -183,6 +194,30 @@ def read_TO(to_fn):
         to_lines = f.readlines()
     to_order = [line.split(" ", 1)[0] for line in to_lines]
     return to_order
+
+
+def create_group_overview():
+    group_link_tmpl = '<a href="{}tags/title/{{}}/">{{}}</a>'.format(WIKIARGUMENTS_BASE_URI)
+    antrag_li_tmpl = '<li><a href="{}{{0}}/">{{0}}: {{1}}</a></li>'.format(WIKIARGUMENTS_BASE_URI)
+    content = ["<h2>Alle Antragsgruppen</h2>"]
+    content.append("<ul>")
+    content_all_antraege = ["<h2>Alle Anträge nach Gruppen</h2>"]
+    content_all_antraege.append("<ul>")
+    for group, members in sorted(antrag_groups.items()):
+        group_formatted = group.replace(" ", "-")
+        group_link = group_link_tmpl.format(group_formatted, group)
+        content.append("<li>" + group_link + "</li>")
+        content_all_antraege.append("<h3>" + group_link + "</h3>")
+        content_all_antraege.append("<ul>")
+        for antrag_id in sorted(members):
+            title = antraege[antrag_id][K["title"]]
+            content_all_antraege.append(antrag_li_tmpl.format(antrag_id, title))
+        content_all_antraege.append("</ul>")
+            
+
+    content.append("</ul>")
+    content += content_all_antraege
+    return "\n".join(content)
 
 
 def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
@@ -217,6 +252,7 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
     if pretend:
         logg.info("---- Nichts geändert, es werden nur die Unterschiede angezeigt ----")
     else:
+        #overview = create_group_overview()
         logg.info("---- Antragsbuch-Update beendet ----")
 
     # show updated and failed antraege

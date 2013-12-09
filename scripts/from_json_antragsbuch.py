@@ -1,27 +1,26 @@
 #/usr/bin/python3
 #coding: utf8
 
-"""Read JSON antrag files ("Antragsbücher") from pirat.ly/spicker and write content to the wikiarguments DB
-STATUS: works, some antraege need custom fixes for strange unicode chars (see BAD_ANTRAEGE_FIXES below)
-"""
+"""Read JSON antrag files ("Antragsbücher") and write content to the wikiarguments DB"""
 
 import difflib
 import json
 import sys
 import re
+from datetime import date
 import time
 from pprint import pformat
 
 sys.path.append(".")
 
 import piratetools42.logconfig
-logg = piratetools42.logconfig.configure_logging("wikiarguments-spickerrr-import.log")
+logg = piratetools42.logconfig.configure_logging("wikiarguments-import.log")
 from piratetools42.wikiargumentsdb import create_additional_data, session, Question, Tag, truncate_database
 
 ### config
 
 WIKI_BASE_URI = "http://wiki.piratenpartei.de/"
-
+WIKIARGUMENTS_BASE_URI = "http://bptarguments.piratenpartei.de/"
 
 HTML_ANTRAGS_TMPL = """\
 {fulltitle_html}
@@ -39,51 +38,46 @@ HTML_ANTRAGS_TMPL = """\
 {changed}
 """
 
-CODE_RE = re.compile("(\w+)(\d\d\d)")
+CODE_RE = re.compile('([A-Z"Ä]+)(\d\d\d\w?)')
 
-# we have to apply fixes for some 'antraege' when inserting into the DB
 BAD_ANTRAEGE_FIXES = {
-# "PP047": lambda s: s.replace("\u2191", "^"),
+# LPT BY 2012.2                      
 # "PP092": lambda s: s.replace("\u2029", " ")
 }
 
-# special codes for the LPT. Map BPT codes to LPT codes.
+# special codes for the BPT.
 CODE_TRANSLATION = {
-# "X": "SA",
-# "P": "PP"
 }
 
 # additional tags which are added to every antrag
-ADDITIONAL_TAGS = ["BPT13.1"]
+ADDITIONAL_TAGS = ["BPT13.2"]
 
 K = {
   "title": "titel",
   "owner": "autor",
   "motivation": "begruendung",
   "id": "id",
-  "lqfb_url": "lqfb", 
-  "info_url": "wiki", 
+  "lqfb_url": "lqfb",
+  "info_url": "wiki",
   "kind": "typ",
   "text": "text",
-  "changed": "changed"
+  "changed": "changed",
+  "group": "gruppe"
 }
 
 # insert custom key mappings here if given JSON entries don't conform to the schema given in K
 
 K.update({
-  "title": "titel",
-  "owner": "autor",
-  "motivation": "begruendung",
-  "lqfb_url": "lqfb", 
-  "info_url": "wiki", 
-  "kind": "typ",
-  "group": "gruppe"
 })
 
 # globals
 
 # do we have a TO (Tagesordnung)?
 TO_GIVEN = False
+
+
+TODAY_DATE_STR = date.strftime(date.today(), "%d.%m.%Y")
+
 
 def translate_antrags_code(antrag):
     """change antrag code and return fixed code"""
@@ -110,12 +104,12 @@ def antrag_details_prepare_html(a):
 
 def prepare_antrag(antrag):
     a = antrag.copy()
-    title = a[K["id"]] + ":" + a[K["title"]]
+    title = a[K["id"]] + ": " + a[K["title"]]
     a[K["text"]] = a[K["text"]].rstrip("</p> </div> <p><br /> </p>")
     a.setdefault(K["lqfb_url"], "-")
     a.setdefault(K["motivation"], "-")
     a.setdefault(K["owner"], "-")
-    a.setdefault(K["changed"], "-")
+    a.setdefault(K["changed"], TODAY_DATE_STR)
     if len(title) > 100:
         logg.warn("%s: title too long: '%s'; shortened", a[K["id"]], title)
         # shorten title because wikiarguments supports only 100 chars
@@ -125,7 +119,7 @@ def prepare_antrag(antrag):
     else:
         a["fulltitle_html"] = ""
         a["shorttitle"] = title
-        
+
     a[K["title"]] = title
     return a
 
@@ -138,11 +132,11 @@ def insert_antrag(antrag, to_pos):
     if TO_GIVEN:
         # add TO position tags
         if to_pos != 0:
-            tags.append("Top80")
+#             tags.append("Top80")
             tags.append("TO" + str(to_pos))
         else:
             tags.append("Rest")
-        
+
     # insert question into DB
     additional = create_additional_data(tags)
     question = Question(title=a["shorttitle"], url=id_, details=details, dateAdded=time.time(),
@@ -175,7 +169,10 @@ def update_antrag(antrag, to_pos, pretend):
             return diff
     else:
         logg.info("Antrag ist neu: '%s'", id_)
-        if not pretend:
+        if pretend:
+            a = prepare_antrag(antrag)
+            antrag_details_prepare_html(a)
+        else:
             insert_antrag(antrag, to_pos)
         return "Neuer Antrag"
 
@@ -192,8 +189,11 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
     logg.info("---- Antragsbuch-Update gestartet ----")
     updated = {}
     failed = {}
-#     to_order = read_TO(to_fn)
-    to_order = []
+    if TO_GIVEN:
+        to_order = read_TO(to_fn)
+        logg.debug("TO is %s", to_order)
+    else:
+        to_order = []
     with open(antragsbuch_fn) as f:
         antragsbuch = json.load(f)
     for antrag in antragsbuch:
@@ -203,6 +203,7 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
             to_pos = to_order.index(code) + 1
         except ValueError:
             to_pos = 0
+#         logg.debug("code %s TO Pos is %s", code, to_pos)
         try:
             diff = update_antrag(antrag, to_pos, pretend)
         except Exception as e:
@@ -217,13 +218,13 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
         logg.info("---- Nichts geändert, es werden nur die Unterschiede angezeigt ----")
     else:
         logg.info("---- Antragsbuch-Update beendet ----")
-        
+
     # show updated and failed antraege
     if updated:
         logg.debug("Geänderte Anträge:\n%s", pformat(updated))
     if failed:
         logg.warn("Es traten Fehler bei folgenden Anträgen auf:\n%s", pformat(failed))
-        
+
     # show counts
     logg.info("Geänderte Anträge (Anzahl): %s", len(updated))
     if failed:
@@ -240,12 +241,13 @@ if __name__ == "__main__":
         if do_it.lower() == "j":
             truncate_database()
             logg.info("alles gelöscht!")
-            
+
         sys.exit(0)
-    # update    
+    # update   
     do_it = input("Update durchführen? Bei nein wird nur angezeigt, was sich verändert hat und nichts an der DB geändert (j/n) ")
     pretend = False if do_it.lower() == "j" else True
     to_filename = sys.argv[2] if len(sys.argv) > 2 else None
     if to_filename:
         TO_GIVEN = True
     update_from_antragsbuch(sys.argv[1], to_filename, pretend)
+    # write 

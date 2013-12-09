@@ -20,6 +20,7 @@ Base = declarative_base()
 
 questions = Table('questions', metadata, autoload=True, autoload_with=engine)
 tags = Table('tags', metadata, autoload=True, autoload_with=engine)
+localization = Table('localization', metadata, autoload=True, autoload_with=engine)
 
 
 class Question(Base):
@@ -28,6 +29,10 @@ class Question(Base):
 
 class Tag(Base):
     __table__ = tags
+
+
+class Localization(Base):
+    __table__ = localization
 
 
 def sqlsoup():
@@ -61,10 +66,26 @@ def test_additional_data():
     assert e == EXAMPLE_ADDITIONAL_DATA
 
 
-def truncate_database():
-    session.execute("truncate tags")
-    session.execute("truncate questions")
+def truncate_tables(tables):
+    for table in tables:
+        session.execute("truncate " + table)
     session.commit()
+
+
+def truncate_questions():
+    tables = [
+        "tags",
+        "questions",
+    ]
+    truncate_tables(tables)
+
+
+def truncate_votes():
+    tables = [
+        "user_factions",
+        "user_votes",
+    ]
+    truncate_tables(tables)
 
 
 def confirm_user():

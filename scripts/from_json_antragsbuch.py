@@ -15,12 +15,14 @@ sys.path.append(".")
 
 import piratetools42.logconfig
 logg = piratetools42.logconfig.configure_logging("wikiarguments-import.log")
-from piratetools42.wikiargumentsdb import create_additional_data, session, Question, Tag, truncate_database
+from piratetools42.wikiargumentsdb import create_additional_data, session, Question, Tag, Localization
+from piratetools42.wikiargumentsdb import truncate_questions
 
 ### config
 
 WIKI_BASE_URI = "http://wiki.piratenpartei.de/"
-WIKIARGUMENTS_BASE_URI = "https://vdr:3000/141/"
+#WIKIARGUMENTS_BASE_URI = "https://vdr:3000/141/"
+WIKIARGUMENTS_BASE_URI = "https://tobixx0net.no-ip.biz:30004/141/"
 #WIKIARGUMENTS_BASE_URI = "http://bptarguments.piratenpartei.de/141/"
 
 HTML_ANTRAGS_TMPL = """\
@@ -51,7 +53,7 @@ CODE_TRANSLATION = {
 }
 
 # additional tags which are added to every antrag
-ADDITIONAL_TAGS = ["BPT14.1"]
+ADDITIONAL_TAGS = [] # ["BPT14.1"]
 
 K = {
   "title": "titel",
@@ -133,7 +135,7 @@ def insert_antrag(antrag, to_pos):
     a = prepare_antrag(antrag)
     details = antrag_details_prepare_html(a)
     id_ = a[K["id"]]
-    tags = [id_, a[K["kind"]], a[K["group"]]] + ADDITIONAL_TAGS
+    tags = [a[K["kind"]], "Gruppe-" + a[K["group"]]] + ADDITIONAL_TAGS
     if TO_GIVEN:
         # add TO position tags
         if to_pos != 0:
@@ -150,7 +152,8 @@ def insert_antrag(antrag, to_pos):
     session.commit()
     # insert title words in Tag table because this table is used for question searches
     title_words = a[K["title"]].split()
-    for tag in tags + title_words:
+    # will be added as "silent" tags: present, but not shown in question views
+    for tag in tags + title_words + [id_]:
         tag_obj = Tag(tag=tag.replace(" ", "-"), questionId=question.questionId, groupId=0)
         session.add(tag_obj)
     session.commit()
@@ -159,6 +162,11 @@ def insert_antrag(antrag, to_pos):
 
 def update_antrag(antrag, to_pos, pretend):
     id_ = antrag[K["id"]]
+    # add to group overview
+    group = antrag[K["group"]]
+    grouplist = antrag_groups.setdefault(group, [])
+    grouplist.append(id_)
+    antraege[id_] = antrag
     question = session.query(Question).filter_by(url=id_).first()
     if question:
         logg.info("Antrag %s existiert schon", id_)
@@ -181,12 +189,6 @@ def update_antrag(antrag, to_pos, pretend):
             insert_antrag(antrag, to_pos)
         return "Neuer Antrag"
 
-    # add to group overview
-    group = antrag[K["group"]]
-    grouplist = antrag_groups.setdefault(group, [])
-    grouplist.append(id_)
-    antraege[id_] = antrag
-
 
 def read_TO(to_fn):
     """TO einlesen""" 
@@ -197,7 +199,18 @@ def read_TO(to_fn):
 
 
 def create_group_overview():
-    group_link_tmpl = '<a href="{}tags/title/{{}}/">{{}}</a>'.format(WIKIARGUMENTS_BASE_URI)
+    css = """\
+    <style>
+    ul {
+    }
+    li {
+        list-style-type: disc;
+        list-style-position: inside;
+        margin-left: 10px;
+    }
+    </style>
+    """
+    group_link_tmpl = '<a href="{}tags/title/Gruppe-{{}}/">{{}}</a>'.format(WIKIARGUMENTS_BASE_URI)
     antrag_li_tmpl = '<li><a href="{}{{0}}/">{{0}}: {{1}}</a></li>'.format(WIKIARGUMENTS_BASE_URI)
     content = ["<h2>Alle Antragsgruppen</h2>"]
     content.append("<ul>")
@@ -217,10 +230,10 @@ def create_group_overview():
 
     content.append("</ul>")
     content += content_all_antraege
-    return "\n".join(content)
+    return css + "\n".join(content)
 
 
-def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
+def update_from_antragsbuch(antragsbuch_fn, to_fn=None, pretend=True):
     logg.info("---- Antragsbuch-Update gestartet ----")
     updated = {}
     failed = {}
@@ -252,7 +265,11 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
     if pretend:
         logg.info("---- Nichts geändert, es werden nur die Unterschiede angezeigt ----")
     else:
-        #overview = create_group_overview()
+        overview = create_group_overview()
+        overview_locs = session.query(Localization).filter_by(loc_key="OVERVIEW").all()
+        for loc in overview_locs:
+            loc.loc_val = overview
+        session.commit()
         logg.info("---- Antragsbuch-Update beendet ----")
 
     # show updated and failed antraege
@@ -268,9 +285,7 @@ def update_from_antragsbuch(antragsbuch_fn, to_fn, pretend):
     return updated, failed
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise Exception("keine Dateiname für das Antragsbuch angegeben!")
+if __name__ == "__main__" and len(sys.argv) >= 2:
     # truncate
     if sys.argv[1] == "truncate":
         do_it = input("Wirklich alle Tags und Fragen löschen?!? (j/n) ")
@@ -279,11 +294,10 @@ if __name__ == "__main__":
             logg.info("alles gelöscht!")
 
         sys.exit(0)
-    # update   
+    # update
     do_it = input("Update durchführen? Bei nein wird nur angezeigt, was sich verändert hat und nichts an der DB geändert (j/n) ")
     pretend = False if do_it.lower() == "j" else True
     to_filename = sys.argv[2] if len(sys.argv) > 2 else None
     if to_filename:
         TO_GIVEN = True
     update_from_antragsbuch(sys.argv[1], to_filename, pretend)
-    # write 

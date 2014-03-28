@@ -3,6 +3,7 @@
 
 """Read JSON antrag files ("Antragsbücher") and write content to the wikiarguments DB"""
 
+import builtins
 import difflib
 import json
 import sys
@@ -15,15 +16,11 @@ sys.path.append(".")
 
 import piratetools42.logconfig
 logg = piratetools42.logconfig.configure_logging("wikiarguments-import.log")
-from piratetools42.wikiargumentsdb import create_additional_data, session, Question, Tag, Localization
-from piratetools42.wikiargumentsdb import truncate_questions
+from wikiarguments_config import WIKIARGUMENTS_BASE_URI, SQLALCHEMY_DATABASE_URI
+builtins.SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI
+from piratetools42.wikiargumentsdb import create_additional_data, Question, Tag, Localization, truncate_questions, session
 
 ### config
-
-WIKI_BASE_URI = "http://wiki.piratenpartei.de/"
-#WIKIARGUMENTS_BASE_URI = "https://vdr:3000/141/"
-WIKIARGUMENTS_BASE_URI = "https://tobixx0net.no-ip.biz:30004/141/"
-#WIKIARGUMENTS_BASE_URI = "http://bptarguments.piratenpartei.de/141/"
 
 HTML_ANTRAGS_TMPL = """\
 {fulltitle_html}
@@ -117,12 +114,12 @@ def prepare_antrag(antrag):
     a.setdefault(K["motivation"], "-")
     a.setdefault(K["owner"], "-")
     a.setdefault(K["changed"], TODAY_DATE_STR)
-    if len(title) > 100:
+    if len(title) > 92:
         logg.warn("%s: title too long: '%s'; shortened", a[K["id"]], title)
         # shorten title because wikiarguments supports only 100 chars
         # add full title to details
         a["fulltitle_html"] = "<h2>Voller Titel</h2>{}<br />".format(a[K["title"]])
-        a["shorttitle"] = title[:97] + "..."
+        a["shorttitle"] = title[:89] + "..."
     else:
         a["fulltitle_html"] = ""
         a["shorttitle"] = title
@@ -234,6 +231,8 @@ def create_group_overview():
 
 
 def update_from_antragsbuch(antragsbuch_fn, to_fn=None, pretend=True):
+    antraege = {}
+    antrag_groups = {}
     logg.info("---- Antragsbuch-Update gestartet ----")
     updated = {}
     failed = {}

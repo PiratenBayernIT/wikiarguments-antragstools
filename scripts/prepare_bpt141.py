@@ -21,8 +21,19 @@ TEX_HYPER_RE = re.compile("\\\\hyperref\[.+?\]{.+?}")
 CODE_RE = re.compile('([A-Z"Ä]+)(\d\d\d)')
 
 ANTRAEGE_TO_REMOVE = [
-#"S\"AA009",
-#"GP002",
+"S\"AA013",
+"GP005",
+"GP010",
+"GP011",
+"WP017",
+"WP020",
+"WP028",
+"WP029",
+"WP048",
+"WP050",
+"WP054",
+"WP056",
+"WP057",
 ]
 
 

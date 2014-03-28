@@ -1,0 +1,4 @@
+SQLALCHEMY_DATABASE_URI = "mysql+oursql://wikiarguments:wikiarguments@localhost/bptarguments"
+WIKI_BASE_URI = "http://wiki.piratenpartei.de/"
+WIKIARGUMENTS_BASE_URI = "https://localhost:3000/141/"
+
